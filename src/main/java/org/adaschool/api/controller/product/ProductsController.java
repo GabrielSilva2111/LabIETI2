@@ -1,13 +1,18 @@
 package org.adaschool.api.controller.product;
 
 import org.adaschool.api.repository.product.Product;
+import org.adaschool.api.repository.product.ProductDto;
 import org.adaschool.api.service.product.ProductsService;
+import org.adaschool.api.exception.ProductNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/v1/products/")
@@ -20,34 +25,47 @@ public class ProductsController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct() {
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
         //TODO implement this method
         URI createdProductUri = URI.create("");
-        return ResponseEntity.created(createdProductUri).body(null);
+        return ResponseEntity.created(createdProductUri).body(productsService.save(product));
     }
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
         //TODO implement this method
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(productsService.all());
     }
 
     @GetMapping("{id}")
     public ResponseEntity<Product> findById(@PathVariable("id") String id) {
-        //TODO implement this method
-        return ResponseEntity.ok(null);
+        try {
+            return new ResponseEntity<Product>(productsService.findById(id).get(), HttpStatus.OK);
+        } catch (Exception e) {
+            throw new ProductNotFoundException(id);
+        }
     }
 
-    @PutMapping
-    public ResponseEntity<Product> updateProduct() {
-        //TODO implement this method
-        return ResponseEntity.ok(null);
+    @PutMapping("{id}")
+    public ResponseEntity<Product> updateProduct(@RequestBody ProductDto productDto, @PathVariable("id") String id) {
+        Product product = new Product(productDto);
+        Optional<Product> productoExiste = productsService.findById(id);
+        if (!productoExiste.isEmpty()) {
+            productsService.update(product, id);
+            productsService.save(productoExiste.get());
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        throw new ProductNotFoundException(id);
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deleteProduct() {
-        //TODO implement this method
+    @DeleteMapping("{id}")
+    public void deleteProduct(@PathVariable("id") String id) {
+        Optional<Product> productoExiste = productsService.findById(id);
+        if (!productoExiste.isEmpty()) {
+            productsService.deleteById(id);
 
-        return ResponseEntity.ok().build();
+        }else{
+            throw new ProductNotFoundException(id);
+        }
     }
 }
